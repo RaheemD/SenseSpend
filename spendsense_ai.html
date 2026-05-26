@@ -2349,16 +2349,12 @@
   <!-- --- INTERACTIVE SYSTEM CONTROLLERS --- -->
   <script>
     // --- GLOBAL API SETTINGS ---
-    // Obfuscated API Key (base64 encoded)
-    const decodedApiKey = () => {
-      const encoded = "c2stb3ItdjEtZWY0OWJiYjZjOTFhNDgzMTZkMjBkNzJiMjIwZjQ2ZGIzOTRmNzI3NzUwNmMxODQxZGEwYzUxMDIxMWRhODQ5Nw==";
-      return atob(encoded);
-    };
-    const apiKey = decodedApiKey(); // OpenRouter API Key (decoded at runtime)
+    // API key is now securely stored server-side in Netlify environment variables.
+    // All AI requests are proxied through /.netlify/functions/ai-proxy
     const MODEL_NAME = "google/gemini-3-flash-preview"; // OpenRouter model
     
-    // Resolves the getApiKey is not defined ReferenceError
-    const getApiKey = () => apiKey;
+    // Kept for backwards compatibility with existing code references
+    const getApiKey = () => "server-side";
     
     // --- FIREBASE INITIALIZATION CONFIG ---
     let db = null;
@@ -2466,9 +2462,9 @@
     let spendingChartInstance = null;
     let activeFilter = "All";
 
-    // --- REUSABLE LLM CALL WRAPPER (OpenRouter API) ---
+    // --- REUSABLE LLM CALL WRAPPER (via Netlify serverless proxy) ---
     async function fetchLLMResponse(promptText) {
-      const url = "https://openrouter.ai/api/v1/chat/completions";
+      const url = "/.netlify/functions/ai-proxy";
       const payload = {
         model: MODEL_NAME,
         messages: [
@@ -2485,10 +2481,7 @@
           const response = await fetch(url, {
             method: "POST",
             headers: { 
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${apiKey}`,
-              "HTTP-Referer": window.location.href,
-              "X-Title": "SpendSense AI"
+              "Content-Type": "application/json"
             },
             body: JSON.stringify(payload)
           });
@@ -2497,10 +2490,10 @@
             if (data.choices && data.choices[0] && data.choices[0].message) {
               return data.choices[0].message.content;
             }
-            throw new Error("Invalid response format received from OpenRouter.");
+            throw new Error("Invalid response format received from AI service.");
           } else {
             const errData = await response.json();
-            throw new Error(errData.error?.message || "OpenRouter Connection Rejected");
+            throw new Error(errData.error?.message || "AI Service Connection Rejected");
           }
         } catch (e) {
           if (i === 4) throw e;
@@ -4766,18 +4759,10 @@ Return strictly a valid JSON object in this exact format:
         let category = "Miscellaneous";
         let note = "Auto categorized via SpendSense AI";
 
-        const activeKey = getApiKey();
-        if (activeKey) {
-          const jsonText = await fetchLLMResponse(prompt, activeKey);
-          const parsed = JSON.parse(jsonText.replace(/```json/g, "").replace(/```/g, "").trim());
-          category = parsed.category || category;
-          note = parsed.note || note;
-        } else {
-          const jsonText = await fetchLLMResponse(prompt, "");
-          const parsed = JSON.parse(jsonText.replace(/```json/g, "").replace(/```/g, "").trim());
-          category = parsed.category || category;
-          note = parsed.note || note;
-        }
+        const jsonText = await fetchLLMResponse(prompt);
+        const parsed = JSON.parse(jsonText.replace(/```json/g, "").replace(/```/g, "").trim());
+        category = parsed.category || category;
+        note = parsed.note || note;
 
         document.getElementById("form-expense-category").value = category;
         document.getElementById("form-expense-note").value = note;
@@ -4892,7 +4877,7 @@ Return strictly valid JSON in this exact structure:
         ]
       };
 
-      const url = "https://openrouter.ai/api/v1/chat/completions";
+      const url = "/.netlify/functions/ai-proxy";
       
       let delay = 1000;
       for (let i = 0; i < 5; i++) {
@@ -4900,10 +4885,7 @@ Return strictly valid JSON in this exact structure:
           const response = await fetch(url, {
             method: "POST",
             headers: { 
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${apiKey}`,
-              "HTTP-Referer": window.location.href,
-              "X-Title": "SpendSense AI"
+              "Content-Type": "application/json"
             },
             body: JSON.stringify(payload)
           });
