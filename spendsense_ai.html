@@ -2993,14 +2993,14 @@
         
         // Desktop button
         if (authBtn) {
-          authBtn.className = "w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-red-500/15 text-slate-400 hover:text-red-400 transition-all border border-slate-700 text-xs font-semibold";
+          authBtn.className = "w-full flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-violet-500/10 border border-violet-500/30 text-violet-200 active:bg-violet-500/20 active:border-violet-500/50 transition-all text-xs font-semibold";
           authText.textContent = "Sign Out";
           if (authIcon) authIcon.setAttribute("data-lucide", "log-out");
         }
         
         // Mobile button
         if (mobileAuthBtn) {
-          mobileAuthBtn.className = "w-full py-4 px-6 rounded-xl bg-slate-800 hover:bg-red-500/15 text-slate-400 hover:text-red-400 transition-all border border-slate-700 text-sm font-bold flex items-center justify-center gap-2";
+          mobileAuthBtn.className = "w-full py-4 px-6 rounded-xl bg-violet-900/30 border border-violet-500/50 text-violet-100 font-bold shadow-[0_0_15px_rgba(139,92,246,0.15)] active:scale-[0.98] active:bg-violet-800/40 transition-all text-sm flex items-center justify-center gap-2";
           mobileAuthText.textContent = "Sign Out";
           if (mobileAuthIcon) mobileAuthIcon.setAttribute("data-lucide", "log-out");
         }
