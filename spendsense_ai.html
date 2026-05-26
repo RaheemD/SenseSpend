@@ -2303,6 +2303,52 @@
     </div>
   </div>
 
+  <!-- --- 🔐 ENTER NEW PASSWORD MODAL (HANDLES EMAIL RESET LINK) --- -->
+  <div id="modal-reset-password" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md">
+    <div class="max-w-sm w-full bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-2xl relative">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-600/30 to-teal-600/30 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4">
+          <i data-lucide="shield-check" class="w-7 h-7 text-emerald-400"></i>
+        </div>
+        <h3 class="text-lg font-extrabold text-white mb-2">Create New Password</h3>
+        <p class="text-xs text-slate-400 leading-relaxed">Your identity has been securely verified. Please enter your new password below.</p>
+      </div>
+
+      <form id="reset-password-form" onsubmit="handleResetPasswordSubmit(event)" class="space-y-4">
+        <input type="hidden" id="reset-oob-code" value="">
+        
+        <div>
+          <label class="text-[10px] text-slate-400 font-bold uppercase block mb-2">New Password</label>
+          <input 
+            type="password" 
+            id="reset-new-password"
+            required
+            minlength="6"
+            placeholder="••••••••"
+            class="w-full bg-slate-800 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:border-emerald-500"
+          />
+        </div>
+        
+        <button 
+          type="submit"
+          id="reset-submit-btn"
+          class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold transition-all shadow-lg text-sm flex items-center justify-center gap-2"
+        >
+          <span id="reset-btn-text">Update Password</span>
+          <span id="reset-btn-loader" class="hidden">
+            <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </span>
+        </button>
+        
+        <div id="reset-error-msg" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-center"></div>
+        <div id="reset-success-msg" class="hidden text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center"></div>
+      </form>
+    </div>
+  </div>
+
   <!-- --- 🎙️ VOICE COPILOT COMMAND PANEL --- -->
   <div id="modal-voice-assist" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-fade-in">
     <div class="max-w-md w-full bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-2xl relative text-center">
@@ -2462,9 +2508,28 @@
     let spendingChartInstance = null;
     let activeFilter = "All";
 
-    // --- REUSABLE LLM CALL WRAPPER (via Netlify serverless proxy) ---
+    // --- REUSABLE LLM CALL WRAPPER (via Netlify serverless proxy or Local fallback) ---
     async function fetchLLMResponse(promptText) {
-      const url = "/.netlify/functions/ai-proxy";
+      const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+      let url = "/.netlify/functions/ai-proxy";
+      let headers = { "Content-Type": "application/json" };
+      
+      // Fallback for local testing (Live Server) since Netlify functions don't run locally without CLI
+      if (isLocal) {
+        let localKey = localStorage.getItem("dev_api_key");
+        if (!localKey) {
+          localKey = prompt("Local Development Mode: Please enter your OpenRouter API Key to test locally. (This is only saved in your browser)");
+          if (localKey) localStorage.setItem("dev_api_key", localKey);
+        }
+        url = "https://openrouter.ai/api/v1/chat/completions";
+        headers = {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localKey}`,
+          "HTTP-Referer": window.location.href,
+          "X-Title": "SpendSense AI (Local)"
+        };
+      }
+
       const payload = {
         model: MODEL_NAME,
         messages: [
@@ -2480,9 +2545,7 @@
         try {
           const response = await fetch(url, {
             method: "POST",
-            headers: { 
-              "Content-Type": "application/json"
-            },
+            headers: headers,
             body: JSON.stringify(payload)
           });
           if (response.ok) {
@@ -2493,6 +2556,8 @@
             throw new Error("Invalid response format received from AI service.");
           } else {
             const errData = await response.json();
+            // Clear bad key if local
+            if (isLocal && response.status === 401) localStorage.removeItem("dev_api_key");
             throw new Error(errData.error?.message || "AI Service Connection Rejected");
           }
         } catch (e) {
@@ -2746,6 +2811,18 @@
 
     // --- APPLICATION BOOTSTRAP INITIALIZATION ---
     window.addEventListener("DOMContentLoaded", () => {
+      // Check for Firebase Auth Action URL parameters (Password Reset)
+      const urlParams = new URLSearchParams(window.location.search);
+      const mode = urlParams.get('mode');
+      const oobCode = urlParams.get('oobCode');
+      
+      if (mode === 'resetPassword' && oobCode) {
+        // We caught a password reset link! Show the custom modal.
+        document.getElementById("reset-oob-code").value = oobCode;
+        document.getElementById("modal-reset-password").classList.remove("hidden");
+        document.getElementById("modal-reset-password").classList.add("flex");
+      }
+
       // Setup dynamic dropdown values for currency selector
       document.getElementById("setting-global-currency-dropdown").value = currentGlobalCurrency;
 
@@ -3110,6 +3187,62 @@
         submitBtn.disabled = false;
         submitBtn.classList.remove("opacity-70", "cursor-not-allowed");
         btnText.textContent = "Send Reset Link";
+        btnLoader.classList.add("hidden");
+      }
+    }
+
+    function closeResetPasswordModal() {
+      document.getElementById("modal-reset-password").classList.add("hidden");
+      document.getElementById("modal-reset-password").classList.remove("flex");
+      
+      // Clean up the URL to remove the reset parameters
+      const url = new URL(window.location);
+      url.search = '';
+      window.history.replaceState({}, document.title, url);
+    }
+
+    async function handleResetPasswordSubmit(e) {
+      e.preventDefault();
+      
+      const newPassword = document.getElementById("reset-new-password").value;
+      const oobCode = document.getElementById("reset-oob-code").value;
+      
+      if (!newPassword || newPassword.length < 6) {
+        document.getElementById("reset-error-msg").innerHTML = "Password must be at least 6 characters long.";
+        document.getElementById("reset-error-msg").classList.remove("hidden");
+        return;
+      }
+      
+      const submitBtn = document.getElementById("reset-submit-btn");
+      const btnText = document.getElementById("reset-btn-text");
+      const btnLoader = document.getElementById("reset-btn-loader");
+      submitBtn.disabled = true;
+      submitBtn.classList.add("opacity-70", "cursor-not-allowed");
+      btnText.textContent = "Updating...";
+      btnLoader.classList.remove("hidden");
+      document.getElementById("reset-error-msg").classList.add("hidden");
+      
+      try {
+        await auth.confirmPasswordReset(oobCode, newPassword);
+        
+        document.getElementById("reset-success-msg").innerHTML = "<strong>Password Updated!</strong><br>You can now sign in with your new password.";
+        document.getElementById("reset-success-msg").classList.remove("hidden");
+        btnText.textContent = "Success!";
+        
+        showToast("Password reset successfully!", "success");
+        
+        setTimeout(() => {
+          closeResetPasswordModal();
+          showAuthModal();
+        }, 2000);
+        
+      } catch (error) {
+        console.error("Confirm password reset error:", error);
+        document.getElementById("reset-error-msg").innerHTML = "<strong>Failed to reset password. The link may have expired.</strong>";
+        document.getElementById("reset-error-msg").classList.remove("hidden");
+        btnText.textContent = "Update Password";
+        submitBtn.disabled = false;
+        submitBtn.classList.remove("opacity-70", "cursor-not-allowed");
         btnLoader.classList.add("hidden");
       }
     }
@@ -4856,6 +4989,25 @@ Return strictly valid JSON in this exact structure:
   "returnWindowDays": 30
 }`;
 
+      const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+      let url = "/.netlify/functions/ai-proxy";
+      let headers = { "Content-Type": "application/json" };
+      
+      if (isLocal) {
+        let localKey = localStorage.getItem("dev_api_key");
+        if (!localKey) {
+          localKey = prompt("Local Development Mode: Please enter your OpenRouter API Key to test locally. (This is only saved in your browser)");
+          if (localKey) localStorage.setItem("dev_api_key", localKey);
+        }
+        url = "https://openrouter.ai/api/v1/chat/completions";
+        headers = {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localKey}`,
+          "HTTP-Referer": window.location.href,
+          "X-Title": "SpendSense AI (Local)"
+        };
+      }
+
       const payload = {
         model: MODEL_NAME,
         messages: [
@@ -4877,16 +5029,12 @@ Return strictly valid JSON in this exact structure:
         ]
       };
 
-      const url = "/.netlify/functions/ai-proxy";
-      
       let delay = 1000;
       for (let i = 0; i < 5; i++) {
         try {
           const response = await fetch(url, {
             method: "POST",
-            headers: { 
-              "Content-Type": "application/json"
-            },
+            headers: headers,
             body: JSON.stringify(payload)
           });
           if (response.ok) {
@@ -4899,6 +5047,7 @@ Return strictly valid JSON in this exact structure:
             showToast("Real-time vision parse complete!", "success");
             return;
           } else {
+             if (isLocal && response.status === 401) localStorage.removeItem("dev_api_key");
              throw new Error("Failed");
           }
         } catch (e) {
