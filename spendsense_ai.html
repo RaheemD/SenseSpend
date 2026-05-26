@@ -242,6 +242,13 @@
                 <i data-lucide="eye" id="signin-eye-icon" class="w-4 h-4"></i>
               </button>
             </div>
+            <button 
+              type="button"
+              onclick="openForgotPasswordModal()"
+              class="mt-2 text-[10px] text-violet-400 hover:text-violet-300 font-semibold hover:underline"
+            >
+              Forgot Password?
+            </button>
           </div>
           <button 
             type="submit"
@@ -2239,6 +2246,63 @@
     </div>
   </div>
 
+  <!-- --- 🔑 FORGOT PASSWORD MODAL --- -->
+  <div id="modal-forgot-password" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+    <div class="max-w-sm w-full bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-2xl relative">
+      <button 
+        onclick="closeForgotPasswordModal()"
+        class="absolute top-4 right-4 p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 transition-colors"
+      >
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 rounded-full bg-gradient-to-br from-violet-600/30 to-indigo-600/30 border border-violet-500/30 flex items-center justify-center mx-auto mb-4">
+          <i data-lucide="key" class="w-7 h-7 text-violet-400"></i>
+        </div>
+        <h3 class="text-lg font-extrabold text-white mb-2">Reset Password</h3>
+        <p class="text-xs text-slate-400 leading-relaxed">Enter your email address and we'll send you a link to reset your password.</p>
+      </div>
+
+      <form id="forgot-password-form" onsubmit="handleForgotPasswordSubmit(event)" class="space-y-4">
+        <div>
+          <label class="text-[10px] text-slate-400 font-bold uppercase block mb-2">Email Address</label>
+          <input 
+            type="email" 
+            id="forgot-email"
+            required
+            placeholder="your@email.com"
+            class="w-full bg-slate-800 border border-slate-700 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:border-violet-500"
+          />
+        </div>
+        
+        <button 
+          type="submit"
+          id="forgot-submit-btn"
+          class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold transition-all shadow-lg text-sm flex items-center justify-center gap-2"
+        >
+          <span id="forgot-btn-text">Send Reset Link</span>
+          <span id="forgot-btn-loader" class="hidden">
+            <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </span>
+        </button>
+        
+        <div id="forgot-error-msg" class="hidden text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-center"></div>
+        <div id="forgot-success-msg" class="hidden text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center"></div>
+      </form>
+      
+      <button 
+        onclick="closeForgotPasswordModal(); showAuthModal();"
+        class="mt-4 w-full py-2 text-xs text-slate-400 hover:text-slate-200 font-semibold text-center"
+      >
+        Back to Sign In
+      </button>
+    </div>
+  </div>
+
   <!-- --- 🎙️ VOICE COPILOT COMMAND PANEL --- -->
   <div id="modal-voice-assist" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-fade-in">
     <div class="max-w-md w-full bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-2xl relative text-center">
@@ -2975,6 +3039,86 @@
     function hideAuthModal() {
       document.getElementById("auth-modal").classList.add("hidden");
       document.getElementById("auth-modal").classList.remove("flex");
+    }
+    
+    function openForgotPasswordModal() {
+      // Clear any previous messages
+      document.getElementById("forgot-error-msg").classList.add("hidden");
+      document.getElementById("forgot-success-msg").classList.add("hidden");
+      document.getElementById("forgot-email").value = "";
+      
+      // Close auth modal and open forgot password modal
+      hideAuthModal();
+      document.getElementById("modal-forgot-password").classList.remove("hidden");
+      document.getElementById("modal-forgot-password").classList.add("flex");
+      lucide.createIcons();
+    }
+    
+    function closeForgotPasswordModal() {
+      document.getElementById("modal-forgot-password").classList.add("hidden");
+      document.getElementById("modal-forgot-password").classList.remove("flex");
+    }
+    
+    async function handleForgotPasswordSubmit(e) {
+      e.preventDefault();
+      
+      if (!auth) {
+        showToast("Firebase not initialized", "error");
+        return;
+      }
+      
+      const email = document.getElementById("forgot-email").value.trim();
+      
+      // Validate email
+      if (!email) {
+        document.getElementById("forgot-error-msg").innerHTML = "<strong>Please enter your email address</strong>";
+        document.getElementById("forgot-error-msg").classList.remove("hidden");
+        return;
+      }
+      
+      // Show loading state
+      const submitBtn = document.getElementById("forgot-submit-btn");
+      const btnText = document.getElementById("forgot-btn-text");
+      const btnLoader = document.getElementById("forgot-btn-loader");
+      submitBtn.disabled = true;
+      submitBtn.classList.add("opacity-70", "cursor-not-allowed");
+      btnText.textContent = "Sending...";
+      btnLoader.classList.remove("hidden");
+      document.getElementById("forgot-error-msg").classList.add("hidden");
+      document.getElementById("forgot-success-msg").classList.add("hidden");
+      
+      try {
+        await auth.sendPasswordResetEmail(email);
+        
+        // Success - show confirmation
+        document.getElementById("forgot-success-msg").innerHTML = `<strong>Check your email!</strong><br><span class="text-slate-300">We've sent a password reset link to <strong>${email}</strong>. Please check your inbox and spam folder.</span>`;
+        document.getElementById("forgot-success-msg").classList.remove("hidden");
+        btnText.textContent = "Email Sent!";
+        showToast("Password reset email sent!", "success");
+        
+      } catch (error) {
+        console.error("Password reset error:", error);
+        let errorMessage = "Failed to send reset email.";
+        
+        if (error.code === 'auth/user-not-found') {
+          errorMessage = "No account found with this email address.";
+        } else if (error.code === 'auth/invalid-email') {
+          errorMessage = "Please enter a valid email address.";
+        } else if (error.code === 'auth/too-many-requests') {
+          errorMessage = "Too many requests. Please wait a few minutes and try again.";
+        }
+        
+        document.getElementById("forgot-error-msg").innerHTML = `<strong>${errorMessage}</strong>`;
+        document.getElementById("forgot-error-msg").classList.remove("hidden");
+        showToast(errorMessage, "error");
+        
+      } finally {
+        // Reset button state
+        submitBtn.disabled = false;
+        submitBtn.classList.remove("opacity-70", "cursor-not-allowed");
+        btnText.textContent = "Send Reset Link";
+        btnLoader.classList.add("hidden");
+      }
     }
 
     function skipAuthAndExplore() {
