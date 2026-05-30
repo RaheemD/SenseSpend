@@ -2425,7 +2425,11 @@
         }
         const idToken = await auth.currentUser.getIdToken();
         headers["X-Firebase-Token"] = idToken;
-        headers["X-User-Date"] = new Date().toLocaleDateString('en-CA');
+        
+        // Pass the user's local date to ensure rate limit resets at their local midnight
+        const d = new Date();
+        const localDateString = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        headers["X-Local-Date"] = localDateString;
       }
 
       const payload = {
@@ -4932,7 +4936,11 @@ Return strictly valid JSON in this exact structure:
         }
         const idToken = await auth.currentUser.getIdToken();
         headers["X-Firebase-Token"] = idToken;
-        headers["X-User-Date"] = new Date().toLocaleDateString('en-CA');
+
+        // Pass the user's local date to ensure rate limit resets at their local midnight
+        const d = new Date();
+        const localDateString = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        headers["X-Local-Date"] = localDateString;
       }
 
       const payload = {
