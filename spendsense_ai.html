@@ -2425,6 +2425,7 @@
         }
         const idToken = await auth.currentUser.getIdToken();
         headers["X-Firebase-Token"] = idToken;
+        headers["X-User-Date"] = new Date().toLocaleDateString('en-CA');
       }
 
       const payload = {
@@ -4931,6 +4932,7 @@ Return strictly valid JSON in this exact structure:
         }
         const idToken = await auth.currentUser.getIdToken();
         headers["X-Firebase-Token"] = idToken;
+        headers["X-User-Date"] = new Date().toLocaleDateString('en-CA');
       }
 
       const payload = {
