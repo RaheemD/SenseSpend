@@ -67,10 +67,18 @@ exports.handler = async (event) => {
     const uid = verifyData.users[0].localId;
 
     // --- STEP 1.5: Enforce Daily Rate Limit (10 calls/day) ---
-    const today = new Date().toISOString().split('T')[0]; // UTC Date (midnight reset)
+    // Use the user's local date to ensure it resets at their local midnight
+    const localDateHeader = event.headers["x-local-date"] || event.headers["X-Local-Date"];
+    const serverUtcDate = new Date().toISOString().split('T')[0];
+    
+    // Validate format (YYYY-MM-DD), fallback to UTC if invalid/missing
+    const today = (localDateHeader && /^\d{4}-\d{2}-\d{2}$/.test(localDateHeader)) 
+                  ? localDateHeader 
+                  : serverUtcDate;
+
     const PROJECT_ID = "my-expense-tracker-50a7a";
     const usageDocUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/users/${uid}/api_usage/${today}`;
-    
+
     let currentUsage = 0;
     try {
       // 1. Get current usage for today
@@ -78,14 +86,14 @@ exports.handler = async (event) => {
         method: "GET",
         headers: { "Authorization": `Bearer ${authHeader}` }
       });
-      
+
       if (getUsageRes.ok) {
         const usageData = await getUsageRes.json();
         if (usageData.fields && usageData.fields.count && usageData.fields.count.integerValue) {
           currentUsage = parseInt(usageData.fields.count.integerValue, 10);
         }
       }
-      
+
       // 2. Check limit
       if (currentUsage >= 10) {
         return {
@@ -94,11 +102,11 @@ exports.handler = async (event) => {
           body: JSON.stringify({ error: "You have reached your limit of 10 free AI calls for today. Please come back tomorrow!" }),
         };
       }
-      
+
       // 3. Increment usage for today
       await fetch(usageDocUrl + "?updateMask.fieldPaths=count", {
         method: "PATCH",
-        headers: { 
+        headers: {
           "Authorization": `Bearer ${authHeader}`,
           "Content-Type": "application/json"
         },
