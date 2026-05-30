@@ -133,58 +133,7 @@
 
 <body class="bg-slate-950 text-slate-100 min-h-screen antialiased pb-20 md:pb-0">
 
-  <!-- --- PWA SPLASH SCREEN (renders instantly before JS loads) --- -->
-  <div id="pwa-splash-screen" style="
-    position: fixed; inset: 0; z-index: 9999;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: linear-gradient(145deg, #0f172a 0%, #1e1040 50%, #0f172a 100%);
-    transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
-  ">
-    <!-- Logo -->
-    <div style="
-      width: 88px; height: 88px; border-radius: 22px;
-      background: linear-gradient(135deg, #8b5cf6, #6366f1);
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 0 40px rgba(139, 92, 246, 0.35), 0 0 80px rgba(99, 102, 241, 0.15);
-      animation: splashPulse 1.8s ease-in-out infinite;
-    ">
-      <span style="font-family: Arial, sans-serif; font-size: 40px; font-weight: 800; color: white; letter-spacing: -1px;">S$</span>
-    </div>
 
-    <!-- App Name -->
-    <h1 style="
-      margin-top: 20px; font-family: 'Inter', Arial, sans-serif;
-      font-size: 22px; font-weight: 800; color: white; letter-spacing: -0.5px;
-    ">SpendSense <span style="
-      background: linear-gradient(90deg, #a78bfa, #818cf8);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    ">AI</span></h1>
-
-    <!-- Tagline -->
-    <p style="
-      margin-top: 6px; font-family: Arial, sans-serif;
-      font-size: 12px; color: #94a3b8; font-weight: 500; letter-spacing: 0.5px;
-    ">Your Personal Money Copilot</p>
-
-    <!-- Loading dots -->
-    <div style="display: flex; gap: 6px; margin-top: 32px;">
-      <div style="width: 6px; height: 6px; border-radius: 50%; background: #8b5cf6; animation: splashDot 1.2s ease-in-out infinite;"></div>
-      <div style="width: 6px; height: 6px; border-radius: 50%; background: #8b5cf6; animation: splashDot 1.2s ease-in-out 0.2s infinite;"></div>
-      <div style="width: 6px; height: 6px; border-radius: 50%; background: #8b5cf6; animation: splashDot 1.2s ease-in-out 0.4s infinite;"></div>
-    </div>
-  </div>
-
-  <style>
-    @keyframes splashPulse {
-      0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(139, 92, 246, 0.35), 0 0 80px rgba(99, 102, 241, 0.15); }
-      50% { transform: scale(1.05); box-shadow: 0 0 60px rgba(139, 92, 246, 0.5), 0 0 100px rgba(99, 102, 241, 0.25); }
-    }
-    @keyframes splashDot {
-      0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-      40% { opacity: 1; transform: scale(1.2); }
-    }
-  </style>
 
   <!-- --- TOAST NOTIFICATIONS CONTAINER --- -->
   <div id="toast-container" class="fixed bottom-24 md:bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
@@ -3841,19 +3790,6 @@
 
       saveLocalSession();
       lucide.createIcons();
-
-      // Dismiss PWA splash screen after first render
-      const splash = document.getElementById("pwa-splash-screen");
-      if (splash && splash.style.opacity !== "0") {
-        const minDisplayMs = 800; // Minimum splash display time for smooth feel
-        const elapsed = performance.now();
-        const remaining = Math.max(0, minDisplayMs - elapsed);
-        setTimeout(() => {
-          splash.style.opacity = "0";
-          splash.style.visibility = "hidden";
-          setTimeout(() => splash.remove(), 600); // Clean up DOM after fade
-        }, remaining);
-      }
     }
 
     // --- 🛡️ RETURN WINDOW SENTINEL ENGINE ---
