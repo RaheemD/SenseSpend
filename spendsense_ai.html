@@ -4094,14 +4094,11 @@
     // spending distributions
     function renderInteractiveChart() {
       const activeCategories = CATEGORIES.filter(c => c.name !== "Salary/Income");
-      
-      const categoryData = activeCategories.map(cat => {
-        return expenses.filter(ex => ex.category === cat.name).reduce((sum, ex) => sum + parseFloat(ex.amount || 0), 0);
-      });
-
       const chartLabels = activeCategories.map(c => c.name);
       const chartColors = activeCategories.map(c => c.chartColor);
-      const dataValues = [...categoryData];
+      const dataValues = activeCategories.map(cat =>
+        expenses.filter(ex => ex.category === cat.name).reduce((sum, ex) => sum + parseFloat(ex.amount || 0), 0)
+      );
 
       const sumData = dataValues.reduce((s, v) => s + v, 0);
 
@@ -4126,7 +4123,7 @@
       listContainer.innerHTML = "";
 
       activeCategories.forEach((cat, idx) => {
-        const spent = categoryData[idx] || 0;
+        const spent = dataValues[idx] || 0;
         const percent = totalSpent > 0 ? ((spent / totalSpent) * 100).toFixed(0) : 0;
         const budgetLimit = budgets.find(b => b.category === cat.name)?.limit || 0;
 
