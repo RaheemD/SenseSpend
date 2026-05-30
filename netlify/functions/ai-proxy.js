@@ -63,6 +63,56 @@ exports.handler = async (event) => {
         body: JSON.stringify({ error: "User account not found. Please sign up first." }),
       };
     }
+
+    const uid = verifyData.users[0].localId;
+
+    // --- STEP 1.5: Enforce Daily Rate Limit (10 calls/day) ---
+    const today = new Date().toISOString().split('T')[0]; // UTC Date (midnight reset)
+    const PROJECT_ID = "my-expense-tracker-50a7a";
+    const usageDocUrl = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/users/${uid}/api_usage/${today}`;
+    
+    let currentUsage = 0;
+    try {
+      // 1. Get current usage for today
+      const getUsageRes = await fetch(usageDocUrl, {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${authHeader}` }
+      });
+      
+      if (getUsageRes.ok) {
+        const usageData = await getUsageRes.json();
+        if (usageData.fields && usageData.fields.count && usageData.fields.count.integerValue) {
+          currentUsage = parseInt(usageData.fields.count.integerValue, 10);
+        }
+      }
+      
+      // 2. Check limit
+      if (currentUsage >= 10) {
+        return {
+          statusCode: 429,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ error: "You have reached your limit of 10 free AI calls for today. Please come back tomorrow!" }),
+        };
+      }
+      
+      // 3. Increment usage for today
+      await fetch(usageDocUrl + "?updateMask.fieldPaths=count", {
+        method: "PATCH",
+        headers: { 
+          "Authorization": `Bearer ${authHeader}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          fields: {
+            count: { integerValue: currentUsage + 1 }
+          }
+        })
+      });
+    } catch (limitError) {
+      // Fail open: if Firestore is down, we still allow the request so we don't break the app
+      console.log("Rate limiting check bypassed due to error:", limitError.message);
+    }
+
   } catch (verifyError) {
     return {
       statusCode: 401,
