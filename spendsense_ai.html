@@ -2528,6 +2528,13 @@
           "HTTP-Referer": window.location.href,
           "X-Title": "SpendSense AI (Local)"
         };
+      } else {
+        // Production: require Firebase authentication
+        if (!auth || !auth.currentUser) {
+          throw new Error("Please sign in to use AI features. Your free AI access requires an account.");
+        }
+        const idToken = await auth.currentUser.getIdToken();
+        headers["X-Firebase-Token"] = idToken;
       }
 
       const payload = {
@@ -5006,6 +5013,15 @@ Return strictly valid JSON in this exact structure:
           "HTTP-Referer": window.location.href,
           "X-Title": "SpendSense AI (Local)"
         };
+      } else {
+        // Production: require Firebase authentication
+        if (!auth || !auth.currentUser) {
+          document.getElementById("ocr-loading-bar").classList.add("hidden");
+          showToast("Please sign in to use Receipt Scanner.", "error");
+          return;
+        }
+        const idToken = await auth.currentUser.getIdToken();
+        headers["X-Firebase-Token"] = idToken;
       }
 
       const payload = {
