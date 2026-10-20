@@ -1415,7 +1415,7 @@ async function toggleBiometricSetting(e) {
     LS.set("spendsense_biometrics", "true");
     showToast("App lock enabled. You'll verify with your device when opening SpendSense.", "success");
   } catch (err) {
-    checkbox.checked = false;
+    checkbox.checked = isLockEnabled(); // reflect the real state (an earlier lock may still be active)
     console.warn("Biometric enrol failed:", err);
     showToast("App lock wasn't enabled (verification cancelled).", "info");
   }

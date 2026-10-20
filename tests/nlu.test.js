@@ -120,6 +120,16 @@ test("spoken amounts and payment methods", () => {
   assert.equal(c.category, "Shopping");
 });
 
+test("'twelve dollars fifty' is 12.50, not 50", () => {
+  const a = parse("spent twelve dollars fifty on lunch");
+  assert.equal(a.amount, 12.5);
+  assert.equal(a.currency, "USD");
+  assert.equal(a.merchant, "Lunch");
+  assert.equal(parse("paid 3 euros and 20 cents for coffee").amount, 3.2);
+  assert.equal(parse("spent 40 dollars on dinner with 5 friends").amount, 40);
+  assert.equal(parse("gave 500 rupees to Ramesh").amount, 500);
+});
+
 test("dollars follow the base currency when it is a dollar currency", () => {
   assert.equal(parse("spent 20 dollars on lunch", { baseCurrency: "CAD" }).currency, "CAD");
   assert.equal(parse("spent 20 dollars on lunch", { baseCurrency: "INR" }).currency, "USD");

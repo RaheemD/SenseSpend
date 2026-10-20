@@ -358,15 +358,28 @@
     const before = new RegExp(`(?:^|[\\s(])(${CURRENCY_ALT})\\s?${num}(?![\\d.]|st\\b|nd\\b|rd\\b|th\\b|%)`, "i");
     const after = new RegExp(`(?:^|[\\s(])${num}\\s?(${CURRENCY_ALT})(?=[\\s.,!?)]|$)`, "i");
 
+    // "12 dollars 50" / "12 dollars and 50 cents" → 12.50
+    const split = t.match(new RegExp(`(?:^|\\s)(\\d+)\\s?(${CURRENCY_ALT})\\s(?:and\\s)?(\\d{1,2})(?:\\s?(?:cents?|pence|paise|p))?(?=[\\s.,!?)]|$)`, "i"));
+    if (split) {
+      const currency = resolveCurrency(split[2], base);
+      if (currency) return { amount: parseInt(split[1], 10) + parseInt(split[3], 10) / 100, currency, raw: split[0].trim() };
+    }
+
+    // Use whichever currency-attached amount appears first in the sentence
+    const candidates = [];
     const mBefore = t.match(before);
     if (mBefore) {
       const currency = resolveCurrency(mBefore[1], base);
-      if (currency) return { amount: parseFloat(mBefore[2]), currency, raw: mBefore[0].trim() };
+      if (currency) candidates.push({ index: mBefore.index, amount: parseFloat(mBefore[2]), currency, raw: mBefore[0].trim() });
     }
     const mAfter = t.match(after);
     if (mAfter) {
       const currency = resolveCurrency(mAfter[2], base);
-      if (currency) return { amount: parseFloat(mAfter[1]), currency, raw: mAfter[0].trim() };
+      if (currency) candidates.push({ index: mAfter.index, amount: parseFloat(mAfter[1]), currency, raw: mAfter[0].trim() });
+    }
+    if (candidates.length) {
+      const { index, ...best } = candidates.sort((a, b) => a.index - b.index)[0];
+      return best;
     }
     const bare = /(?:^|[\s(])(\d+(?:\.\d{1,3})?)(?![\d.]|\s?%|st\b|nd\b|rd\b|th\b|\s?(?:am|pm|o'clock|days?|weeks?|months?|years?|hours?|minutes?|percent)\b)/i;
     const mBare = t.match(bare);
