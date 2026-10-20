@@ -28,6 +28,10 @@ const FALLBACK_MODELS = (process.env.OPENROUTER_FALLBACK_MODELS || "google/gemin
   .split(",")
   .map((s) => s.trim())
   .filter((s) => s && s !== PRIMARY_MODEL);
+const IS_ANTHROPIC = PRIMARY_MODEL.startsWith("anthropic/");
+// Anthropic models "think" by default and that thinking counts against max_tokens, which left no room
+// for the answer. Turn it off for them unless AI_REASONING_EFFORT is set (none|low|medium|high).
+const REASONING_EFFORT = process.env.AI_REASONING_EFFORT || (IS_ANTHROPIC ? "none" : null);
 
 const MAX_BODY_CHARS = 5_500_000; // Netlify rejects request bodies above ~6MB
 const MAX_MESSAGES = 40;
@@ -289,19 +293,24 @@ exports.handler = async (event) => {
         models: [PRIMARY_MODEL, ...FALLBACK_MODELS],
         messages,
         max_tokens: Math.round(clamp(requestBody.max_tokens, 64, MAX_OUTPUT_TOKENS, DEFAULT_OUTPUT_TOKENS)),
-        temperature: clamp(requestBody.temperature, 0, 1.2, 0.6),
+        // Anthropic models on OpenRouter don't accept temperature
+        ...(IS_ANTHROPIC ? {} : { temperature: clamp(requestBody.temperature, 0, 1.2, 0.6) }),
+        ...(REASONING_EFFORT ? { reasoning: { effort: REASONING_EFFORT, exclude: true } } : {}),
         user: uid,
       }),
     });
 
     const data = await response.json().catch(() => ({}));
-    const content = data.choices?.[0]?.message?.content;
+    const choice = data.choices?.[0];
+    let content = choice?.message?.content;
+    if (Array.isArray(content)) content = content.map((p) => (typeof p === "string" ? p : p?.text || "")).join("");
 
     if (!response.ok || typeof content !== "string" || !content.trim()) {
       await refund();
       const message =
-        (typeof data.error === "string" ? data.error : data.error?.message) || "The AI service returned an empty response.";
-      console.log("Upstream error:", response.status, message);
+        (typeof data.error === "string" ? data.error : data.error?.message) ||
+        (choice?.finish_reason === "length" ? "The AI ran out of space before answering. Please try again." : "The AI service returned an empty response.");
+      console.log("Upstream error:", response.status, message, "finish_reason:", choice?.finish_reason, "model:", data.model);
       return json(response.ok ? 502 : response.status >= 500 ? 502 : response.status, { error: message });
     }
 
