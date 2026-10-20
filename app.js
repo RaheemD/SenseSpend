@@ -14,7 +14,7 @@
 // =============================================================================
 // CONFIGURATION
 // =============================================================================
-const DEV_MODEL_NAME = "google/gemini-3-flash-preview"; // only used for direct local-dev calls
+const DEV_MODEL_NAME = "anthropic/claude-haiku-5.5"; // only used for direct local-dev calls
 const AI_PROXY_URL = "/.netlify/functions/ai-proxy";
 
 const firebaseConfig = {
