@@ -11,8 +11,8 @@
 // ENVIRONMENT VARIABLES
 //   OPENROUTER_API_KEY          (required) OpenRouter key
 //   FIREBASE_API_KEY            (required) Firebase Web API key, used to verify ID tokens
-//   OPENROUTER_MODEL            (optional) primary model, default anthropic/claude-haiku-5.5
-//   OPENROUTER_FALLBACK_MODELS  (optional) comma-separated fallbacks, default google/gemini-3-flash-preview
+//   OPENROUTER_MODEL            (optional) primary model, default google/gemini-3-flash-preview
+//   OPENROUTER_FALLBACK_MODELS  (optional) comma-separated fallbacks, default google/gemini-2.5-flash
 //   AI_DAILY_LIMIT              (optional) calls per user per day, default 10
 //   FIREBASE_PROJECT_ID         (optional) default my-expense-tracker-50a7a
 //   FIREBASE_SERVICE_ACCOUNT    (optional, recommended) service-account JSON (raw or base64). When set,
@@ -23,8 +23,8 @@ const crypto = require("crypto");
 
 const PROJECT_ID = process.env.FIREBASE_PROJECT_ID || "my-expense-tracker-50a7a";
 const DAILY_LIMIT = Math.max(1, parseInt(process.env.AI_DAILY_LIMIT || "10", 10) || 10);
-const PRIMARY_MODEL = process.env.OPENROUTER_MODEL || "anthropic/claude-haiku-5.5";
-const FALLBACK_MODELS = (process.env.OPENROUTER_FALLBACK_MODELS || "google/gemini-3-flash-preview")
+const PRIMARY_MODEL = process.env.OPENROUTER_MODEL || "google/gemini-3-flash-preview";
+const FALLBACK_MODELS = (process.env.OPENROUTER_FALLBACK_MODELS || "google/gemini-2.5-flash")
   .split(",")
   .map((s) => s.trim())
   .filter((s) => s && s !== PRIMARY_MODEL);
@@ -289,7 +289,7 @@ exports.handler = async (event) => {
         models: [PRIMARY_MODEL, ...FALLBACK_MODELS],
         messages,
         max_tokens: Math.round(clamp(requestBody.max_tokens, 64, MAX_OUTPUT_TOKENS, DEFAULT_OUTPUT_TOKENS)),
-        temperature: clamp(requestBody.temperature, 0, 1, 0.6), // Anthropic models accept 0-1
+        temperature: clamp(requestBody.temperature, 0, 1.2, 0.6),
         user: uid,
       }),
     });

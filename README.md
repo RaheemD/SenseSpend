@@ -22,8 +22,8 @@ Data is stored in `localStorage` when signed out and in Cloud Firestore (`users/
 | --- | --- | --- |
 | `OPENROUTER_API_KEY` | yes | OpenRouter key used by the proxy |
 | `FIREBASE_API_KEY` | yes | Firebase Web API key, used to verify users' ID tokens |
-| `OPENROUTER_MODEL` | no | Primary model (default `anthropic/claude-haiku-5.5`) |
-| `OPENROUTER_FALLBACK_MODELS` | no | Comma-separated fallbacks (default `google/gemini-3-flash-preview`) |
+| `OPENROUTER_MODEL` | no | Primary model (default `google/gemini-3-flash-preview`) |
+| `OPENROUTER_FALLBACK_MODELS` | no | Comma-separated fallbacks (default `google/gemini-2.5-flash`) |
 | `AI_DAILY_LIMIT` | no | AI requests per user per day (default `10`) |
 | `FIREBASE_SERVICE_ACCOUNT` | recommended | Service-account JSON (raw or base64). When set, the daily usage counter is written with server credentials, so clients can be denied write access to it (see rules below). |
 
